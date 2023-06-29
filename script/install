@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# script/install: Script to install from source, eventually when there 
+#                 are releases this will switch to latest release
+
+
+DOWNLOAD=""
+OS=""
+ARCH=`uname -m`
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+	OS="linux"
+elif [[ "$OSTYPE" == "darwin"* ]]; then
+	OS="darwin"
+elif [[ "$OSTYPE" == "cygwin" ]]; then
+	OS="linux"
+elif [[ "$OSTYPE" == "msys" ]]; then
+	OS="linux"
+else
+        echo script for os type $OSTYPE is unsupported, build from sournce instead 
+	exit 1
+fi
+
+if [[ "$ARCH" == "x86_64" ]]; then
+    ARCH="amd64"
+fi
+
+DOWNLOAD=statcapn-$OS-$ARCH.zip
+curl -o $DOWNLOAD -L "https://github.com/dremio/statcapn/releases/latest/download/$DOWNLOAD"
+unzip $DOWNLOAD
+
+sudo mkdir -p /usr/local/share/statcapn
+sudo mv ./bin/* /usr/local/share/statcapn/
+sudo ln -s /usr/local/share/statcapn/statcapn /usr/local/bin
+
+rm $DOWNLOAD
+rm -fr statcapn-$OS-$ARCH

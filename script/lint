@@ -1,0 +1,15 @@
+#!/bin/sh
+
+# script/lint: Run gofmt and golangci-lint run
+
+set -e
+
+cd "$(dirname "$0")/.."
+
+go fmt ./...
+
+echo "executing golangci-lint run"
+golangci-lint run -E exportloopref,revive,gofmt -D structcheck
+
+echo "executing license-header-checker"
+license-header-checker license_header.txt . go
