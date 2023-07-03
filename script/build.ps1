@@ -11,7 +11,7 @@ Set-Location -Path (Get-Item (Split-Path -Parent $MyInvocation.MyCommand.Definit
 # Get Git SHA and Version
 $GIT_SHA = git rev-parse --short HEAD
 $VERSION = git rev-parse --abbrev-ref HEAD
-$LDFLAGS = "-X github.com/dremio/statcapn/pkg/versions.gitSha=$GIT_SHA -X github.com/dremio/statcapn/pkg/versions.version=$VERSION"
+$LDFLAGS = "-X github.com/rsvihladremio/statcapn/pkg/versions.gitSha=$GIT_SHA -X github.com/rsvihladremio/statcapn/pkg/versions.version=$VERSION"
 
 # Build again and copy default-ddc.yaml
 go build -ldflags "$LDFLAGS" -o .\bin\statcapn.exe

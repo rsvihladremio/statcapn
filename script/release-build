@@ -38,7 +38,7 @@ fi
 # this is also set in script/build and is a copy paste
 GIT_SHA=`git rev-parse --short HEAD`
 VERSION=$1
-LDFLAGS="-X github.com/dremio/statcapn/pkg/versions.gitSha=$GIT_SHA -X github.com/dremio/statcapn/pkg/versions.version=$VERSION"
+LDFLAGS="-X github.com/rsvihladremio/statcapn/pkg/versions.gitSha=$GIT_SHA -X github.com/rsvihladremio/statcapn/pkg/versions.version=$VERSION"
 
 echo "Cleaning bin folder…"
 date "+%H:%M:%S"

@@ -16,7 +16,6 @@
 package pkg
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -212,11 +211,7 @@ func SystemMetrics(args Args) error {
 		// we manually close this so we do not care that we are not handling the error
 		defer f.Close()
 
-		bufWriter := bufio.NewWriter(w)
 		cleanup = func() error {
-			if err := bufWriter.Flush(); err != nil {
-				return fmt.Errorf("unable to flush metrics file %v due to error %w", outputFile, err)
-			}
 			if err := f.Close(); err != nil {
 				return fmt.Errorf("unable to close metrics file %v due to error %w", outputFile, err)
 			}
@@ -229,7 +224,7 @@ func SystemMetrics(args Args) error {
 				return fmt.Errorf("unable to marshal row %#v due to error %w", row, err)
 			}
 			txt := fmt.Sprintf("%v\n", string(str))
-			_, err = bufWriter.Write([]byte(txt))
+			_, err = f.Write([]byte(txt))
 			if err != nil {
 				return fmt.Errorf("unable to write to json file due to error %w", err)
 			}

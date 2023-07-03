@@ -40,5 +40,5 @@ fi
 # this is also set in script/release and is a copy paste
 GIT_SHA=`git rev-parse --short HEAD`
 VERSION=`git rev-parse --abbrev-ref HEAD`
-LDFLAGS="-X github.com/dremio/statcapn/pkg/versions.gitSha=$GIT_SHA -X github.com/dremio/statcapn/pkg/versions.version=$VERSION"
+LDFLAGS="-X github.com/rsvihladremio/statcapn/pkg/versions.gitSha=$GIT_SHA -X github.com/rsvihladremio/statcapn/pkg/versions.version=$VERSION"
 go build -ldflags "$LDFLAGS" -o ./bin/statcapn

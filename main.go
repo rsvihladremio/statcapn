@@ -18,9 +18,13 @@ package main
 import (
 	"errors"
 	"flag"
+	"fmt"
 	"log"
+	"math"
+	"os"
 
 	"github.com/rsvihladremio/statcapn/pkg"
+	"github.com/rsvihladremio/statcapn/pkg/versions"
 )
 
 func main() {
@@ -35,11 +39,23 @@ func ArgParse() pkg.Args {
 	var durationSeconds int
 	var outFile string
 
-	flag.IntVar(&intervalSeconds, "i", 1, "number of seconds between execution of collection")
-	flag.IntVar(&durationSeconds, "d", 60, "number of seconds for duration of all collection")
-	flag.Parse()
-	if flag.NArg() > 0 {
-		outFile = flag.Arg(0)
+	fs := flag.NewFlagSet("statcapn", flag.ExitOnError)
+
+	fs.IntVar(&intervalSeconds, "i", 1, "number of seconds between execution of collection")
+	fs.IntVar(&durationSeconds, "d", math.MaxInt, "number of seconds for duration of all collection")
+
+	// Customize the usage message
+	fs.Usage = func() {
+		fmt.Fprintf(os.Stderr, "statcapn %s-%s\n\nstandard usage:\n\tstatcapn -i <interval> -d <duration_seconds> metrics.txt\n\nFor json output:\n\tstatcapn -i <interval> -d <duration_seconds> metrics.json\n\nflags:\n\n", versions.GetVersion(), versions.GetGitSha())
+		fs.PrintDefaults()
+	}
+
+	if err := fs.Parse(os.Args[1:]); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	if fs.NArg() > 0 {
+		outFile = fs.Arg(0)
 	}
 	return pkg.Args{
 		IntervalSeconds: intervalSeconds,

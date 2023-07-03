@@ -25,7 +25,7 @@ if [[ "$ARCH" == "x86_64" ]]; then
 fi
 
 DOWNLOAD=statcapn-$OS-$ARCH.zip
-curl -o $DOWNLOAD -L "https://github.com/dremio/statcapn/releases/latest/download/$DOWNLOAD"
+curl -o $DOWNLOAD -L "https://github.com/rsvihladremio/statcapn/releases/latest/download/$DOWNLOAD"
 unzip $DOWNLOAD
 
 sudo mkdir -p /usr/local/share/statcapn
