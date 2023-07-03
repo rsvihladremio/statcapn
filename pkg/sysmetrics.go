@@ -25,9 +25,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shirou/gopsutil/v3/cpu"
-	"github.com/shirou/gopsutil/v3/disk"
-	"github.com/shirou/gopsutil/v3/mem"
+	"github.com/rsvihladremio/statcapn/pkg/gopsmetrics"
+	"github.com/rsvihladremio/statcapn/pkg/metrics"
 )
 
 type Args struct {
@@ -35,6 +34,8 @@ type Args struct {
 	DurationSeconds int
 	OutFile         string
 }
+
+// SystemMetricsRow represents a row of system metrics data.
 type SystemMetricsRow struct {
 	CollectionTimeStamp    time.Time `json:"collectionTimestamp"`
 	rawUserCPUPercent      float64
@@ -65,13 +66,14 @@ type SystemMetricsRow struct {
 	CachedRAMMB            int64  `json:"cachedRAMMB"`
 }
 
+// CollectionParams includes all the necessary parameters to complete a collection
 type CollectionParams struct {
 	IntervalSeconds int
 	DurationSeconds int
 	RowWriter       func(SystemMetricsRow) error
 }
 
-func CollectSystemMetrics(params CollectionParams) error {
+func CollectSystemMetrics(params CollectionParams, sleeper func(time.Duration), metrics metrics.MetricsCollection) error {
 	if params.DurationSeconds < 1 {
 		return fmt.Errorf("duration must be at least 1 second %v", params.DurationSeconds)
 	}
@@ -84,32 +86,32 @@ func CollectSystemMetrics(params CollectionParams) error {
 		return fmt.Errorf("interval of %v cannot be greater than the duration of %v", params.IntervalSeconds, params.DurationSeconds)
 	}
 
-	prevDiskIO, err := disk.IOCounters()
+	prevDiskIO, err := metrics.IOCounters()
 	if err != nil {
 		return err
 	}
-	prevCPUTimes, err := cpu.Times(false)
+	prevCPUTimes, err := metrics.Times()
 	if err != nil {
 		return err
 	}
 	for i := 0; i < iterations; i++ {
 		// Sleep
-		time.Sleep(interval)
+		sleeper(interval)
 
 		// CPU Times
-		cpuTimes, err := cpu.Times(false)
+		cpuTimes, err := metrics.Times()
 		if err != nil {
 			return err
 		}
 
 		// Memory
-		memoryInfo, err := mem.VirtualMemory()
+		memoryInfo, err := metrics.VirtualMemory()
 		if err != nil {
 			return err
 		}
 
 		// Disk I/O
-		diskIO, err := disk.IOCounters()
+		diskIO, err := metrics.IOCounters()
 		if err != nil {
 			return err
 		}
@@ -127,7 +129,7 @@ func CollectSystemMetrics(params CollectionParams) error {
 			}
 		}
 		prevDiskIO = diskIO
-		total := getTotalTime(cpuTimes[0], prevCPUTimes[0])
+		total := getTotalTime(cpuTimes, prevCPUTimes)
 		var queueDepth float64
 		var diskLatency float64
 		if weightedIOTime > 0 {
@@ -137,55 +139,55 @@ func CollectSystemMetrics(params CollectionParams) error {
 
 		row := SystemMetricsRow{}
 		row.CollectionTimeStamp = time.Now()
-		user := cpuTimes[0].User - prevCPUTimes[0].User
+		user := cpuTimes.User - prevCPUTimes.User
 		if user > 0 {
 			row.rawUserCPUPercent = (user / total) * 100
 		}
 		row.UserCPUPercent = fmt.Sprintf("%.2f", row.rawUserCPUPercent)
-		system := cpuTimes[0].System - prevCPUTimes[0].System
+		system := cpuTimes.System - prevCPUTimes.System
 		if system > 0 {
 			row.rawSystemCPUPercent = (system / total) * 100
 		}
 		row.SystemCPUPercent = fmt.Sprintf("%.2f", row.rawSystemCPUPercent)
-		idle := cpuTimes[0].Idle - prevCPUTimes[0].Idle
+		idle := cpuTimes.Idle - prevCPUTimes.Idle
 		if idle > 0 {
 			row.rawIdleCPUPercent = (idle / total) * 100
 		}
 		row.IdleCPUPercent = fmt.Sprintf("%.2f", row.rawIdleCPUPercent)
-		nice := cpuTimes[0].Nice - prevCPUTimes[0].Nice
+		nice := cpuTimes.Nice - prevCPUTimes.Nice
 		if nice > 0 {
 			row.rawNiceCPUPercent = (nice / total) * 100
 		}
 		row.NiceCPUPercent = fmt.Sprintf("%.2f", row.rawNiceCPUPercent)
-		iowait := cpuTimes[0].Iowait - prevCPUTimes[0].Iowait
+		iowait := cpuTimes.Iowait - prevCPUTimes.Iowait
 		if iowait > 0 {
 			row.rawIOWaitCPUPercent = (iowait / total) * 100
 		}
 		row.IOWaitCPUPercent = fmt.Sprintf("%.2f", row.rawIOWaitCPUPercent)
 
-		irq := cpuTimes[0].Irq - prevCPUTimes[0].Irq
+		irq := cpuTimes.Irq - prevCPUTimes.Irq
 		if irq > 0 {
 			row.rawIRQCPUPercent = (irq / total) * 100
 		}
 		row.IRQCPUPercent = fmt.Sprintf("%.2f", row.rawIRQCPUPercent)
 
-		softIRQ := cpuTimes[0].Softirq - prevCPUTimes[0].Softirq
+		softIRQ := cpuTimes.Softirq - prevCPUTimes.Softirq
 		if softIRQ > 0 {
 			row.rawSoftIRQCPUPercent = (softIRQ / total) * 100
 		}
 		row.SoftIRQCPUPercent = fmt.Sprintf("%.2f", row.rawSoftIRQCPUPercent)
-		steal := cpuTimes[0].Steal - prevCPUTimes[0].Steal
+		steal := cpuTimes.Steal - prevCPUTimes.Steal
 		if steal > 0 {
 			row.rawStealCPUPercent = (steal / total) * 100
 		}
 		row.StealCPUPercent = fmt.Sprintf("%.2f", row.rawStealCPUPercent)
 
-		guestCPU := cpuTimes[0].Guest - prevCPUTimes[0].Guest
+		guestCPU := cpuTimes.Guest - prevCPUTimes.Guest
 		if guestCPU > 0 {
 			row.rawGuestCPUPercent = (guestCPU / total) * 100
 		}
 		row.GuestCPUPercent = fmt.Sprintf("%.2f", row.rawGuestCPUPercent)
-		guestCPUNice := cpuTimes[0].GuestNice - prevCPUTimes[0].GuestNice
+		guestCPUNice := cpuTimes.GuestNice - prevCPUTimes.GuestNice
 		if guestCPUNice > 0 {
 			row.rawGuestNiceCPUPercent = (guestCPUNice / total) * 100
 		}
@@ -196,8 +198,8 @@ func CollectSystemMetrics(params CollectionParams) error {
 		row.QueueDepth = fmt.Sprintf("%.2f", queueDepth)
 
 		var memoryFreeMB float64
-		if memoryInfo.Free > 0 {
-			memoryFreeMB = float64(memoryInfo.Free) / (1024 * 1024)
+		if memoryInfo.Available > 0 {
+			memoryFreeMB = float64(memoryInfo.Available) / (1024 * 1024)
 		}
 		var memoryCachedMB float64
 		if memoryCachedMB > 0 {
@@ -316,14 +318,16 @@ func SystemMetrics(args Args) error {
 		RowWriter:       rowWriter,
 	}
 
-	if err := CollectSystemMetrics(params); err != nil {
+	if err := CollectSystemMetrics(params, func(d time.Duration) {
+		time.Sleep(d)
+	}, &gopsmetrics.GoPSMetricsCollection{}); err != nil {
 		return fmt.Errorf("unable to collect system metrics with error %v", err)
 	}
 
 	return cleanup()
 }
 
-func getTotalTime(c cpu.TimesStat, p cpu.TimesStat) float64 {
+func getTotalTime(c metrics.TimesStat, p metrics.TimesStat) float64 {
 	current := c.User + c.System + c.Idle + c.Nice + c.Iowait + c.Irq +
 		c.Softirq + c.Steal + c.Guest + c.GuestNice
 	prev := p.User + p.System + p.Idle + p.Nice + p.Iowait + p.Irq +
