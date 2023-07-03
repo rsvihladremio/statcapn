@@ -15,7 +15,7 @@
 // metrics provides the interface to implement metrics
 package metrics
 
-type MetricsCollection interface {
+type Collector interface {
 	IOCounters() (map[string]IOCountersStat, error)
 	Times() (TimesStat, error)
 	VirtualMemory() (*VirtualMemoryStat, error)

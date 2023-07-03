@@ -16,61 +16,58 @@
 package gopsmetrics
 
 import (
-	"crypto/rand"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/disk"
+	"github.com/shirou/gopsutil/v3/mem"
 )
 
 func TestIOCounters(t *testing.T) {
-	g := &GoPSMetricsCollection{}
-	counters, err := g.IOCounters()
+	g := &Collector{}
+	_, err := g.IOCounters()
 	if err != nil {
 		t.Fatal(err)
 	}
+}
 
-	data := make([]byte, 1024*1024) // 1 mb
-	_, err = rand.Read(data)        // Generate random data
-	if err != nil {
-		t.Fatal(err)
-	}
+func TestIOCountersMapping(t *testing.T) {
 
-	fileToWrite := filepath.Join(t.TempDir(), "test_file.txt")
-	err = os.WriteFile(fileToWrite, data, 0600)
-	if err != nil {
-		t.Fatal(err)
+	g := &Collector{}
+	result := make(map[string]disk.IOCountersStat)
+	result["Disk1"] = disk.IOCountersStat{
+		ReadBytes:  100,
+		WriteBytes: 200,
+		IoTime:     300,
+		WeightedIO: 400,
+		Name:       "Disk1",
 	}
-	if err != nil {
-		t.Errorf("IOCounters method failed: %v", err)
-	}
-
-	for _, v := range counters {
-		if v.ReadBytes == 0 {
+	counters := g.mapIOCounters(result)
+	for k, v := range counters {
+		e := result[k]
+		if v.ReadBytes != e.ReadBytes {
 			t.Errorf("IOCounters did not perform mapping correctly on read bytes '%v'", v.ReadBytes)
 		}
-		if v.WriteBytes == 0 {
+		if v.WriteBytes != e.WriteBytes {
 			t.Errorf("IOCounters did not perform mapping correctly on write bytes '%v'", v.WriteBytes)
 		}
 
-		if v.IoTime == 0 {
+		if v.IoTime != e.IoTime {
 			t.Errorf("IOCounters did not perform mapping correctly on iotime '%v'", v.IoTime)
 		}
 
-		// super difficult to test for this since we have to have managed to queue up work, so commenting out
-		// if v.WeightedIO == 0 {
-		// 	t.Errorf("IOCounters did not perform mapping correctly on weightedIO '%v'", v.WeightedIO)
-		// }
+		if v.WeightedIO != e.WeightedIO {
+			t.Errorf("IOCounters did not perform mapping correctly on weightedIO '%v'", v.WeightedIO)
+		}
 
-		if v.Name == "" {
+		if v.Name != e.Name {
 			t.Errorf("IOCounters did not perform mapping correctly on name '%v'", v.Name)
 		}
 	}
 }
 
 func TestTimes(t *testing.T) {
-	g := &GoPSMetricsCollection{}
+	g := &Collector{}
 	_, err := g.Times()
 
 	if err != nil {
@@ -80,7 +77,7 @@ func TestTimes(t *testing.T) {
 }
 
 func TestTimesMap(t *testing.T) {
-	g := &GoPSMetricsCollection{}
+	g := &Collector{}
 	expected := cpu.TimesStat{
 		User:      1.0,
 		System:    2.0,
@@ -138,19 +135,27 @@ func TestTimesMap(t *testing.T) {
 }
 
 func TestVirtualMemory(t *testing.T) {
-	g := &GoPSMetricsCollection{}
-	mem, err := g.VirtualMemory()
+	g := &Collector{}
+	_, err := g.VirtualMemory()
 
 	if err != nil {
 		t.Errorf("VirtualMemory method failed: %v", err)
 	}
 
-	if mem.Available == 0 {
+}
+
+func TestVirtualMemoryMapping(t *testing.T) {
+	g := &Collector{}
+	e := &mem.VirtualMemoryStat{
+		Cached:    100,
+		Available: 200,
+	}
+	mem := g.mapVirtualMemory(e)
+	if mem.Available != e.Available {
 		t.Errorf("VirtualMemory did not perform mapping correctly on mem available %v", mem.Available)
 	}
 
-	// only useful on linux and not used in some reporting
-	// if mem.Cached == 0 {
-	// 	t.Errorf("VirtualMemory did not perform mapping correctly on mem cached %v", mem.Cached)
-	// }
+	if mem.Cached != e.Cached {
+		t.Errorf("VirtualMemory did not perform mapping correctly on mem cached %v", mem.Cached)
+	}
 }

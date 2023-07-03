@@ -73,7 +73,7 @@ type CollectionParams struct {
 	RowWriter       func(SystemMetricsRow) error
 }
 
-func CollectSystemMetrics(params CollectionParams, sleeper func(time.Duration), metrics metrics.MetricsCollection) error {
+func CollectSystemMetrics(params CollectionParams, sleeper func(time.Duration), metrics metrics.Collector) error {
 	if params.DurationSeconds < 1 {
 		return fmt.Errorf("duration must be at least 1 second %v", params.DurationSeconds)
 	}
@@ -320,7 +320,7 @@ func SystemMetrics(args Args) error {
 
 	if err := CollectSystemMetrics(params, func(d time.Duration) {
 		time.Sleep(d)
-	}, &gopsmetrics.GoPSMetricsCollection{}); err != nil {
+	}, &gopsmetrics.Collector{}); err != nil {
 		return fmt.Errorf("unable to collect system metrics with error %v", err)
 	}
 

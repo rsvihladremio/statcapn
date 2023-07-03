@@ -22,14 +22,18 @@ import (
 	"github.com/shirou/gopsutil/v3/mem"
 )
 
-type GoPSMetricsCollection struct {
+type Collector struct {
 }
 
-func (g *GoPSMetricsCollection) IOCounters() (map[string]metrics.IOCountersStat, error) {
+func (g *Collector) IOCounters() (map[string]metrics.IOCountersStat, error) {
 	counters, err := disk.IOCounters()
 	if err != nil {
 		return make(map[string]metrics.IOCountersStat), err
 	}
+	return g.mapIOCounters(counters), nil
+}
+
+func (g *Collector) mapIOCounters(counters map[string]disk.IOCountersStat) map[string]metrics.IOCountersStat {
 	result := make(map[string]metrics.IOCountersStat)
 	for k, v := range counters {
 		result[k] = metrics.IOCountersStat{
@@ -40,10 +44,10 @@ func (g *GoPSMetricsCollection) IOCounters() (map[string]metrics.IOCountersStat,
 			Name:       v.Name,
 		}
 	}
-	return result, nil
+	return result
 }
 
-func (g *GoPSMetricsCollection) Times() (metrics.TimesStat, error) {
+func (g *Collector) Times() (metrics.TimesStat, error) {
 	c, err := cpu.Times(false)
 	if err != nil {
 		return metrics.TimesStat{}, err
@@ -52,7 +56,7 @@ func (g *GoPSMetricsCollection) Times() (metrics.TimesStat, error) {
 	return g.mapTimes(first), nil
 }
 
-func (g *GoPSMetricsCollection) mapTimes(cpuTime cpu.TimesStat) metrics.TimesStat {
+func (g *Collector) mapTimes(cpuTime cpu.TimesStat) metrics.TimesStat {
 	return metrics.TimesStat{
 		User:      cpuTime.User,
 		System:    cpuTime.System,
@@ -67,13 +71,17 @@ func (g *GoPSMetricsCollection) mapTimes(cpuTime cpu.TimesStat) metrics.TimesSta
 	}
 }
 
-func (g *GoPSMetricsCollection) VirtualMemory() (*metrics.VirtualMemoryStat, error) {
+func (g *Collector) VirtualMemory() (*metrics.VirtualMemoryStat, error) {
 	virt, err := mem.VirtualMemory()
 	if err != nil {
 		return &metrics.VirtualMemoryStat{}, err
 	}
+	return g.mapVirtualMemory(virt), nil
+}
+
+func (g Collector) mapVirtualMemory(virt *mem.VirtualMemoryStat) *metrics.VirtualMemoryStat {
 	return &metrics.VirtualMemoryStat{
 		Available: virt.Available,
 		Cached:    virt.Cached,
-	}, nil
+	}
 }
