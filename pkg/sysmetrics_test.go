@@ -16,6 +16,11 @@
 package pkg
 
 import (
+	"bufio"
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -318,5 +323,80 @@ func TestCalculatesCPUUsageCorrectly(t *testing.T) {
 	actual = rows[1].IOWaitCPUPercent
 	if actual != expected {
 		t.Errorf("irq cpu %v but expected %v", actual, expected)
+	}
+}
+
+func TestSystemMetricsIntegrationWithJson(t *testing.T) {
+	outFile := filepath.Join(t.TempDir(), "metrics.json")
+	args := Args{
+		IntervalSeconds: 1,
+		DurationSeconds: 2,
+		OutFile:         outFile,
+	}
+	err := SystemMetrics(args)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	//verify each row is readable as json
+	f, err := os.Open(outFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	scanner := bufio.NewScanner(f)
+	counter := 0
+	for scanner.Scan() {
+		counter++
+		line := scanner.Text()
+		obj := SystemMetricsRow{}
+		err := json.Unmarshal([]byte(strings.TrimSpace(line)), &obj)
+		if err != nil {
+			t.Errorf("error unmarshalling line %v with error %v", line, err)
+		}
+	}
+	if counter != 2 {
+		t.Errorf("expected 2 iterations but got %v", counter)
+	}
+}
+
+func TestSystemMetricsIntegrationWithTxt(t *testing.T) {
+	outFile := filepath.Join(t.TempDir(), "metrics.txt")
+	args := Args{
+		IntervalSeconds: 1,
+		DurationSeconds: 2,
+		OutFile:         outFile,
+	}
+	err := SystemMetrics(args)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	//verify each has the right count of values
+	f, err := os.Open(outFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	scanner := bufio.NewScanner(f)
+	rowCounter := 0
+	header := ""
+	for scanner.Scan() {
+		line := scanner.Text()
+		if header == "" {
+			header = line
+			continue
+		}
+		rowCounter++
+		//should have 10 tabs
+		tabs := strings.Count(line, "\t")
+		if tabs != 10 {
+			t.Errorf("expected 10 tabs for line %v but had %v", line, tabs)
+		}
+	}
+	expectedHeader := "                Timestamp	    usr %%	    sys %%	 iowait %%	  other %%	    idl %%	     Queue	Latency (ms)	Read (MB/s)	Write (MB/s)	Free Mem (GB)"
+	if header != expectedHeader {
+		t.Errorf("expected header\n%q\nbut got\n%q", expectedHeader, header)
+	}
+	if rowCounter != 2 {
+		t.Errorf("expected 2 rows but got %v", rowCounter)
 	}
 }

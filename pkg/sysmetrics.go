@@ -245,7 +245,8 @@ func SystemMetrics(args Args) error {
 			if err != nil {
 				return fmt.Errorf("unable to marshal row %#v due to error %w", row, err)
 			}
-			_, err = bufWriter.Write(str)
+			txt := fmt.Sprintf("%v\n", string(str))
+			_, err = bufWriter.Write([]byte(txt))
 			if err != nil {
 				return fmt.Errorf("unable to write to json file due to error %w", err)
 			}
