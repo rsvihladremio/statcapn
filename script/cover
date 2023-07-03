@@ -1,0 +1,11 @@
+#!/bin/sh
+
+# script/cover: Run the coverage
+
+#set -e
+
+cd "$(dirname "$0")/.."
+
+[ -z "$DEBUG" ] || set -x
+
+go tool cover -func=covprofile
