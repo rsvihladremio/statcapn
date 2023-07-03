@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"path"
 	"strings"
@@ -37,33 +38,23 @@ type Args struct {
 
 // SystemMetricsRow represents a row of system metrics data.
 type SystemMetricsRow struct {
-	CollectionTimeStamp    time.Time `json:"collectionTimestamp"`
-	rawUserCPUPercent      float64
-	rawSystemCPUPercent    float64
-	rawIdleCPUPercent      float64
-	rawIOWaitCPUPercent    float64
-	rawNiceCPUPercent      float64
-	rawIRQCPUPercent       float64
-	rawSoftIRQCPUPercent   float64
-	rawStealCPUPercent     float64
-	rawGuestCPUPercent     float64
-	rawGuestNiceCPUPercent float64
-	UserCPUPercent         string `json:"userCPUPercent"`
-	SystemCPUPercent       string `json:"systmeCPUPercent"`
-	IdleCPUPercent         string `json:"idleCPUPercent"`
-	NiceCPUPercent         string `json:"niceCPUPercent"`
-	IOWaitCPUPercent       string `json:"ioWaitCPUPercent"`
-	IRQCPUPercent          string `json:"irqCPUPercent"`
-	SoftIRQCPUPercent      string `json:"softIRQCPUPercent"`
-	StealCPUPercent        string `json:"stealCPUPercent"`
-	GuestCPUPercent        string `json:"guestCPUPercent"`
-	GuestNiceCPUPercent    string `json:"guestCPUNicePercent"`
-	QueueDepth             string `json:"queueDepth"`
-	DiskLatency            string `json:"diskLatency"`
-	ReadBytes              int64  `json:"readBytes"`
-	WriteBytes             int64  `json:"writeBytes"`
-	FreeRAMMB              int64  `json:"freeRAMMB"`
-	CachedRAMMB            int64  `json:"cachedRAMMB"`
+	CollectionTimeStamp time.Time `json:"collectionTimestamp"`
+	UserCPUPercent      float64   `json:"userCPUPercent"`
+	SystemCPUPercent    float64   `json:"systmeCPUPercent"`
+	IdleCPUPercent      float64   `json:"idleCPUPercent"`
+	NiceCPUPercent      float64   `json:"niceCPUPercent"`
+	IOWaitCPUPercent    float64   `json:"ioWaitCPUPercent"`
+	IRQCPUPercent       float64   `json:"irqCPUPercent"`
+	SoftIRQCPUPercent   float64   `json:"softIRQCPUPercent"`
+	StealCPUPercent     float64   `json:"stealCPUPercent"`
+	GuestCPUPercent     float64   `json:"guestCPUPercent"`
+	GuestNiceCPUPercent float64   `json:"guestCPUNicePercent"`
+	QueueDepth          float64   `json:"queueDepth"`
+	DiskLatency         float64   `json:"diskLatency"`
+	ReadBytes           int64     `json:"readBytes"`
+	WriteBytes          int64     `json:"writeBytes"`
+	FreeRAMMB           int64     `json:"freeRAMMB"`
+	CachedRAMMB         int64     `json:"cachedRAMMB"`
 }
 
 // CollectionParams includes all the necessary parameters to complete a collection
@@ -124,8 +115,8 @@ func CollectSystemMetrics(params CollectionParams, sleeper func(time.Duration), 
 			totalIOs += io.IoTime - p.IoTime
 
 			if prev, ok := prevDiskIO[io.Name]; ok {
-				readBytes += float64(io.ReadBytes-prev.ReadBytes) / 1024
-				writeBytes += float64(io.WriteBytes-prev.WriteBytes) / 1024
+				readBytes += float64(io.ReadBytes - prev.ReadBytes)
+				writeBytes += float64(io.WriteBytes - prev.WriteBytes)
 			}
 		}
 		prevDiskIO = diskIO
@@ -133,80 +124,72 @@ func CollectSystemMetrics(params CollectionParams, sleeper func(time.Duration), 
 		var queueDepth float64
 		var diskLatency float64
 		if weightedIOTime > 0 {
-			queueDepth = float64(weightedIOTime) / 1000
-			diskLatency = float64(weightedIOTime) / float64(totalIOs)
+			queueDepth = round(float64(weightedIOTime) / 1000)
+			diskLatency = round(float64(weightedIOTime) / float64(totalIOs))
 		}
 
 		row := SystemMetricsRow{}
 		row.CollectionTimeStamp = time.Now()
 		user := cpuTimes.User - prevCPUTimes.User
 		if user > 0 {
-			row.rawUserCPUPercent = (user / total) * 100
+			row.UserCPUPercent = round((user / total) * 100)
 		}
-		row.UserCPUPercent = fmt.Sprintf("%.2f", row.rawUserCPUPercent)
 		system := cpuTimes.System - prevCPUTimes.System
 		if system > 0 {
-			row.rawSystemCPUPercent = (system / total) * 100
+			row.SystemCPUPercent = round((system / total) * 100)
 		}
-		row.SystemCPUPercent = fmt.Sprintf("%.2f", row.rawSystemCPUPercent)
 		idle := cpuTimes.Idle - prevCPUTimes.Idle
 		if idle > 0 {
-			row.rawIdleCPUPercent = (idle / total) * 100
+			row.IdleCPUPercent = round((idle / total) * 100)
 		}
-		row.IdleCPUPercent = fmt.Sprintf("%.2f", row.rawIdleCPUPercent)
 		nice := cpuTimes.Nice - prevCPUTimes.Nice
 		if nice > 0 {
-			row.rawNiceCPUPercent = (nice / total) * 100
+			row.NiceCPUPercent = round((nice / total) * 100)
 		}
-		row.NiceCPUPercent = fmt.Sprintf("%.2f", row.rawNiceCPUPercent)
 		iowait := cpuTimes.Iowait - prevCPUTimes.Iowait
 		if iowait > 0 {
-			row.rawIOWaitCPUPercent = (iowait / total) * 100
+			row.IOWaitCPUPercent = round((iowait / total) * 100)
 		}
-		row.IOWaitCPUPercent = fmt.Sprintf("%.2f", row.rawIOWaitCPUPercent)
 
 		irq := cpuTimes.Irq - prevCPUTimes.Irq
 		if irq > 0 {
-			row.rawIRQCPUPercent = (irq / total) * 100
+			row.IRQCPUPercent = round((irq / total) * 100)
 		}
-		row.IRQCPUPercent = fmt.Sprintf("%.2f", row.rawIRQCPUPercent)
 
 		softIRQ := cpuTimes.Softirq - prevCPUTimes.Softirq
 		if softIRQ > 0 {
-			row.rawSoftIRQCPUPercent = (softIRQ / total) * 100
+			row.SoftIRQCPUPercent = round((softIRQ / total) * 100)
 		}
-		row.SoftIRQCPUPercent = fmt.Sprintf("%.2f", row.rawSoftIRQCPUPercent)
 		steal := cpuTimes.Steal - prevCPUTimes.Steal
 		if steal > 0 {
-			row.rawStealCPUPercent = (steal / total) * 100
+			row.StealCPUPercent = round((steal / total) * 100)
 		}
-		row.StealCPUPercent = fmt.Sprintf("%.2f", row.rawStealCPUPercent)
 
 		guestCPU := cpuTimes.Guest - prevCPUTimes.Guest
 		if guestCPU > 0 {
-			row.rawGuestCPUPercent = (guestCPU / total) * 100
+			row.GuestCPUPercent = round((guestCPU / total) * 100)
 		}
-		row.GuestCPUPercent = fmt.Sprintf("%.2f", row.rawGuestCPUPercent)
 		guestCPUNice := cpuTimes.GuestNice - prevCPUTimes.GuestNice
 		if guestCPUNice > 0 {
-			row.rawGuestNiceCPUPercent = (guestCPUNice / total) * 100
+			row.GuestNiceCPUPercent = round((guestCPUNice / total) * 100)
 		}
-		row.GuestNiceCPUPercent = fmt.Sprintf("%.2f", row.rawGuestNiceCPUPercent)
 
 		prevCPUTimes = cpuTimes
-		row.DiskLatency = fmt.Sprintf("%.2f", diskLatency)
-		row.QueueDepth = fmt.Sprintf("%.2f", queueDepth)
+		row.DiskLatency = diskLatency
+		row.QueueDepth = queueDepth
 
 		var memoryFreeMB float64
 		if memoryInfo.Available > 0 {
-			memoryFreeMB = float64(memoryInfo.Available) / (1024 * 1024)
-		}
-		var memoryCachedMB float64
-		if memoryCachedMB > 0 {
-			memoryCachedMB = float64(memoryInfo.Cached) / (1024 * 1024)
+			memoryFreeMB = round(float64(memoryInfo.Available) / (1024 * 1024))
 		}
 		row.FreeRAMMB = int64(memoryFreeMB)
+
+		var memoryCachedMB float64
+		if memoryCachedMB > 0 {
+			memoryCachedMB = round(float64(memoryInfo.Cached) / (1024 * 1024))
+		}
 		row.CachedRAMMB = int64(memoryCachedMB)
+
 		if err := params.RowWriter(row); err != nil {
 			return err
 		}
@@ -278,13 +261,13 @@ func SystemMetrics(args Args) error {
 		//write metrics.txt file
 		template := "%25s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s"
 		floatTemplate := "%.2f"
-		percentTemplate := "%s%%"
+		percentTemplate := "%.2f%%"
 		txtHeader := fmt.Sprintf(template, "Timestamp", "usr %%", "sys %%", "iowait %%", "other %%", "idl %%", "Queue", "Latency (ms)", "Read (MB/s)", "Write (MB/s)", "Free Mem (GB)")
 		if _, err := fmt.Fprintln(w, txtHeader); err != nil {
 			return fmt.Errorf("unable to write metrics file %v due to error %w", outputFile, err)
 		}
 		rowWriter = func(row SystemMetricsRow) error {
-			otherCPU := row.rawNiceCPUPercent + row.rawIRQCPUPercent + row.rawSoftIRQCPUPercent + row.rawStealCPUPercent + row.rawGuestCPUPercent + row.rawGuestNiceCPUPercent
+			otherCPU := row.NiceCPUPercent + row.IRQCPUPercent + row.SoftIRQCPUPercent + row.StealCPUPercent + row.GuestCPUPercent + row.GuestNiceCPUPercent
 			var readBytesMB, writeBytesMB, freeRAMGB float64
 			if row.ReadBytes > 0 {
 				readBytesMB = float64(row.ReadBytes) / (1024 * 1024)
@@ -300,10 +283,10 @@ func SystemMetrics(args Args) error {
 				fmt.Sprintf(percentTemplate, row.UserCPUPercent),
 				fmt.Sprintf(percentTemplate, row.SystemCPUPercent),
 				fmt.Sprintf(percentTemplate, row.IOWaitCPUPercent),
-				fmt.Sprintf(percentTemplate, fmt.Sprintf(floatTemplate, otherCPU)),
+				fmt.Sprintf(percentTemplate, otherCPU),
 				fmt.Sprintf(percentTemplate, row.IdleCPUPercent),
-				row.QueueDepth,
-				row.DiskLatency,
+				fmt.Sprintf(floatTemplate, row.QueueDepth),
+				fmt.Sprintf(floatTemplate, row.DiskLatency),
 				fmt.Sprintf(floatTemplate, readBytesMB),
 				fmt.Sprintf(floatTemplate, writeBytesMB),
 				fmt.Sprintf(floatTemplate, freeRAMGB))
@@ -328,6 +311,10 @@ func SystemMetrics(args Args) error {
 	return cleanup()
 }
 
+func round(num float64) float64 {
+	factor := math.Pow(10, float64(2))
+	return math.Round(num*factor) / factor
+}
 func getTotalTime(c metrics.TimesStat, p metrics.TimesStat) float64 {
 	current := c.User + c.System + c.Idle + c.Nice + c.Iowait + c.Irq +
 		c.Softirq + c.Steal + c.Guest + c.GuestNice

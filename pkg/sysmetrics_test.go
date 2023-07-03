@@ -18,6 +18,7 @@ package pkg
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -203,63 +204,64 @@ func TestCalculatesCPUUsageCorrectly(t *testing.T) {
 	if len(rows) != 2 {
 		t.Errorf("expected 2 rows but got %v", len(rows))
 	}
+	perc := "%.2f"
 	expected := "0.00"
 	actual := rows[0].UserCPUPercent
-	if actual != expected {
+	if fmt.Sprintf(perc, actual) != expected {
 		t.Errorf("user cpu %v but expected %v", actual, expected)
 	}
 
 	expected = "0.00"
 	actual = rows[0].SystemCPUPercent
-	if actual != expected {
+	if fmt.Sprintf(perc, actual) != expected {
 		t.Errorf("system cpu %v but expected %v", actual, expected)
 	}
 
 	expected = "0.00"
 	actual = rows[0].StealCPUPercent
-	if actual != expected {
+	if fmt.Sprintf(perc, actual) != expected {
 		t.Errorf("steal cpu %v but expected %v", actual, expected)
 	}
 
 	expected = "100.00"
 	actual = rows[0].IdleCPUPercent
-	if actual != expected {
+	if fmt.Sprintf(perc, actual) != expected {
 		t.Errorf("idle cpu %v but expected %v", actual, expected)
 	}
 
 	expected = "0.00"
 	actual = rows[0].GuestCPUPercent
-	if actual != expected {
+	if fmt.Sprintf(perc, actual) != expected {
 		t.Errorf("guest cpu %v but expected %v", actual, expected)
 	}
 
 	expected = "0.00"
 	actual = rows[0].GuestNiceCPUPercent
-	if actual != expected {
+	if fmt.Sprintf(perc, actual) != expected {
 		t.Errorf("guest nice cpu %v but expected %v", actual, expected)
 	}
 
 	expected = "0.00"
 	actual = rows[0].NiceCPUPercent
-	if actual != expected {
+	if fmt.Sprintf(perc, actual) != expected {
 		t.Errorf("nice cpu %v but expected %v", actual, expected)
 	}
 
 	expected = "0.00"
 	actual = rows[0].IRQCPUPercent
-	if actual != expected {
+	if fmt.Sprintf(perc, actual) != expected {
 		t.Errorf("irq cpu %v but expected %v", actual, expected)
 	}
 
 	expected = "0.00"
 	actual = rows[0].SoftIRQCPUPercent
-	if actual != expected {
+	if fmt.Sprintf(perc, actual) != expected {
 		t.Errorf("irq cpu %v but expected %v", actual, expected)
 	}
 
 	expected = "0.00"
 	actual = rows[0].IOWaitCPUPercent
-	if actual != expected {
+	if fmt.Sprintf(perc, actual) != expected {
 		t.Errorf("irq cpu %v but expected %v", actual, expected)
 	}
 
@@ -267,61 +269,61 @@ func TestCalculatesCPUUsageCorrectly(t *testing.T) {
 
 	expected = "10.00"
 	actual = rows[1].UserCPUPercent
-	if actual != expected {
+	if fmt.Sprintf(perc, actual) != expected {
 		t.Errorf("user cpu %v but expected %v", actual, expected)
 	}
 
 	expected = "9.00"
 	actual = rows[1].SystemCPUPercent
-	if actual != expected {
+	if fmt.Sprintf(perc, actual) != expected {
 		t.Errorf("system cpu %v but expected %v", actual, expected)
 	}
 
 	expected = "3.00"
 	actual = rows[1].StealCPUPercent
-	if actual != expected {
+	if fmt.Sprintf(perc, actual) != expected {
 		t.Errorf("steal cpu %v but expected %v", actual, expected)
 	}
 
 	expected = "51.00"
 	actual = rows[1].IdleCPUPercent
-	if actual != expected {
+	if fmt.Sprintf(perc, actual) != expected {
 		t.Errorf("idle cpu %v but expected %v", actual, expected)
 	}
 
 	expected = "2.00"
 	actual = rows[1].GuestCPUPercent
-	if actual != expected {
+	if fmt.Sprintf(perc, actual) != expected {
 		t.Errorf("guest cpu %v but expected %v", actual, expected)
 	}
 
 	expected = "1.00"
 	actual = rows[1].GuestNiceCPUPercent
-	if actual != expected {
+	if fmt.Sprintf(perc, actual) != expected {
 		t.Errorf("guest nice cpu %v but expected %v", actual, expected)
 	}
 
 	expected = "8.00"
 	actual = rows[1].NiceCPUPercent
-	if actual != expected {
+	if fmt.Sprintf(perc, actual) != expected {
 		t.Errorf("nice cpu %v but expected %v", actual, expected)
 	}
 
 	expected = "5.00"
 	actual = rows[1].IRQCPUPercent
-	if actual != expected {
+	if fmt.Sprintf(perc, actual) != expected {
 		t.Errorf("irq cpu %v but expected %v", actual, expected)
 	}
 
 	expected = "4.00"
 	actual = rows[1].SoftIRQCPUPercent
-	if actual != expected {
+	if fmt.Sprintf(perc, actual) != expected {
 		t.Errorf("irq cpu %v but expected %v", actual, expected)
 	}
 
 	expected = "7.00"
 	actual = rows[1].IOWaitCPUPercent
-	if actual != expected {
+	if fmt.Sprintf(perc, actual) != expected {
 		t.Errorf("irq cpu %v but expected %v", actual, expected)
 	}
 }
