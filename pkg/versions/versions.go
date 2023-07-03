@@ -15,8 +15,8 @@
 // versions contains all the global variables for setting version
 package versions
 
-var version string = "dev"
-var gitSha string = "unknown"
+var version = "dev"
+var gitSha = "unknown"
 
 func GetVersion() string {
 	return version
